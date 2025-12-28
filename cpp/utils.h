@@ -372,7 +372,7 @@ compute_distance_map(const dolfinx::mesh::Mesh<double>& quadrature_mesh,
                      const dolfinx::mesh::Mesh<double>& candidate_mesh,
                      std::span<const std::int32_t> candidate_facets,
                      const QuadratureRule& q_rule, ContactMode mode,
-                     double radius);
+                     double radius, bool exclude_self_neighbors = false);
 
 /// Compute facet indices from given pairs (cell, local__facet)
 ///
@@ -584,7 +584,8 @@ compute_raytracing_map(const dolfinx::mesh::Mesh<double>& quadrature_mesh,
                        const QuadratureRule& q_rule,
                        const dolfinx::mesh::Mesh<double>& candidate_mesh,
                        std::span<const std::int32_t> candidate_facets,
-                       double search_radius = -1.)
+                       double search_radius = -1.,
+                       bool exclude_self_neighbors = false)
 {
   dolfinx::common::Timer timer("~Raytracing");
   assert(candidate_mesh.geometry().dim() == gdim);

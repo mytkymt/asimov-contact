@@ -989,7 +989,8 @@ dolfinx_contact::compute_distance_map(
     std::span<const std::int32_t> quadrature_facets,
     const dolfinx::mesh::Mesh<double>& candidate_mesh,
     std::span<const std::int32_t> candidate_facets,
-    const QuadratureRule& q_rule, ContactMode mode, double radius)
+    const QuadratureRule& q_rule, ContactMode mode, double radius,
+    bool exclude_self_neighbors)
 {
   dolfinx::common::Timer t("~Contact: compute distance map");
   const dolfinx::mesh::Geometry<double>& geometry = quadrature_mesh.geometry();
@@ -1099,15 +1100,15 @@ dolfinx_contact::compute_distance_map(
     {
       if (gdim == 2)
       {
-        return compute_raytracing_map<2, 2>(quadrature_mesh, quadrature_facets,
-                                            q_rule, candidate_mesh,
-                                            candidate_facets, radius);
+        return compute_raytracing_map<2, 2>(
+            quadrature_mesh, quadrature_facets, q_rule, candidate_mesh,
+            candidate_facets, radius, exclude_self_neighbors);
       }
       else if (gdim == 3)
       {
-        return compute_raytracing_map<2, 3>(quadrature_mesh, quadrature_facets,
-                                            q_rule, candidate_mesh,
-                                            candidate_facets, radius);
+        return compute_raytracing_map<2, 3>(
+            quadrature_mesh, quadrature_facets, q_rule, candidate_mesh,
+            candidate_facets, radius, exclude_self_neighbors);
       }
       else
         throw std::runtime_error("Invalid gdim: " + std::to_string(gdim));
@@ -1116,7 +1117,8 @@ dolfinx_contact::compute_distance_map(
     {
       return compute_raytracing_map<3, 3>(quadrature_mesh, quadrature_facets,
                                           q_rule, candidate_mesh,
-                                          candidate_facets, radius);
+                                          candidate_facets, radius,
+                                          exclude_self_neighbors);
     }
     else
       throw std::runtime_error("Invalid tdim: " + std::to_string(tdim));
