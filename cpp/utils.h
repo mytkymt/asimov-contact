@@ -359,6 +359,8 @@ void compute_physical_points(const dolfinx::mesh::Mesh<double>& mesh,
 /// @param[in] mode The contact mode, either closest point or ray-tracing
 /// @param[in] radius The search radius. Only used for ray-tracing at
 /// the moment
+/// @param[in] exclude_self_neighbors Exclude the facet itself and
+/// cell-neighbors on the candidate mesh (ray-tracing only).
 /// @returns A tuple (closest_facets, reference_points) where
 /// `closest_facets` is an adjacency list for each input facet in
 /// quadrature facets, where the links indicate which facet on the other
@@ -569,6 +571,8 @@ compute_projection_map(const dolfinx::mesh::Mesh<double>& mesh,
 /// tuples (cell_index, local_facet_index) for the
 /// `quadrature_mesh`. Flattened row major.
 /// @param[in] radius The search radius
+/// @param[in] exclude_self_neighbors Exclude the facet itself and
+/// cell-neighbors on the candidate mesh.
 /// @returns A tuple (facet_map, reference_points), where
 /// `facet_map` is an AdjacencyList from the ith facet
 /// tuple in `quadrature_facets` to the facet (index local
