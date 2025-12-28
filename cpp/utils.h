@@ -10,6 +10,7 @@
 #include "RayTracing.h"
 #include "error_handling.h"
 #include "geometric_quantities.h"
+#include <algorithm>
 #include <basix/cell.h>
 #include <basix/finite-element.h>
 #include <basix/quadrature.h>
@@ -604,6 +605,18 @@ compute_raytracing_map(const dolfinx::mesh::Mesh<double>& quadrature_mesh,
       = facet_indices_from_pair(quadrature_facets, quadrature_mesh);
   std::vector<std::int32_t> c_facets
       = facet_indices_from_pair(candidate_facets, candidate_mesh);
+  std::shared_ptr<const dolfinx::graph::AdjacencyList<int>> f_to_c;
+  std::shared_ptr<const dolfinx::graph::AdjacencyList<int>> c_to_f;
+  if (exclude_self_neighbors)
+  {
+    f_to_c = candidate_mesh.topology()->connectivity(tdim - 1, tdim);
+    c_to_f = candidate_mesh.topology()->connectivity(tdim, tdim - 1);
+    if (!f_to_c || !c_to_f)
+    {
+      throw std::runtime_error("Missing facet/cell connectivity on candidate "
+                               "mesh for self-contact exclusion.");
+    }
+  }
   // Structures used for computing physical normal
   std::array<double, 9> Jb;
   mdspan_t<double, 2> J(Jb.data(), gdim, tdim);
@@ -701,12 +714,34 @@ compute_raytracing_map(const dolfinx::mesh::Mesh<double>& quadrature_mesh,
   for (std::size_t i = 0; i < quadrature_facets.size(); i += 2)
   {
     std::size_t count_missing_matches = 0; // counter for missing contact points
+    std::vector<std::int32_t> exclude_facets;
+    if (exclude_self_neighbors)
+    {
+      auto cells = f_to_c->links(q_facets[i / 2]);
+      for (auto cell : cells)
+      {
+        auto facets = c_to_f->links(cell);
+        exclude_facets.insert(exclude_facets.end(), facets.begin(), facets.end());
+      }
+      dolfinx::radix_sort(exclude_facets);
+      exclude_facets.erase(std::unique(exclude_facets.begin(), exclude_facets.end()),
+                           exclude_facets.end());
+    }
 
     // Determine candidate facets within search radius
     // FIXME: This is not the most efficient way of finding close facets
     std::vector<size_t> cand_patch
         = find_candidate_facets(quadrature_mesh, candidate_mesh,
                                 q_facets[i / 2], c_facets, 2 * search_radius);
+    if (exclude_self_neighbors && !exclude_facets.empty())
+    {
+      auto is_excluded = [&](std::size_t idx)
+      { return std::binary_search(exclude_facets.begin(), exclude_facets.end(),
+                                  c_facets[idx]); };
+      cand_patch.erase(std::remove_if(cand_patch.begin(), cand_patch.end(),
+                                      is_excluded),
+                       cand_patch.end());
+    }
 
     // Pack coordinate dofs
     auto x_dofs = MDSPAN_IMPL_STANDARD_NAMESPACE::submdspan(

@@ -312,9 +312,10 @@ void Contact::create_distance_map(int pair)
       = _submesh.get_submesh_tuples(_cell_facet_pairs.links(candidate_mt));
 
   // Compute facet map
+  const bool exclude_self_neighbors = (quadrature_mt == candidate_mt);
   [[maybe_unused]] auto [adj, reference_x, shape] = compute_distance_map(
       *quadrature_mesh, quadrature_facets, *candidate_mesh, submesh_facets,
-      _quadrature_rule, _mode[pair], _radius);
+      _quadrature_rule, _mode[pair], _radius, exclude_self_neighbors);
 
   _facet_maps[pair]
       = std::make_shared<dolfinx::graph::AdjacencyList<std::int32_t>>(adj);
